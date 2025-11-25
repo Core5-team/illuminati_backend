@@ -1,0 +1,14 @@
+maxSurge:       25%
+maxUnavailable: 25%
+containerRepo: 506087227011.dkr.ecr.eu-central-1.amazonaws.com/backend_dev
+buildVersion: 1.0.3
+cpuRequests: 100m
+memoryRequests: 128Mi
+cpuLimit: 200m
+memorylimit: 256Mi
+healthPath: /api/health/
+containerPort: 8000
+minReplicas: 1
+maxReplicas: 20
+cpuAverageUtilization: 70
+memoryAverageUtilization: 70

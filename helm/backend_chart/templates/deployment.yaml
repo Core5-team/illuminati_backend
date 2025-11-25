@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+  generation: 1
+  labels:
+    run: backend
+    name: backend
+  namespace: illuminati
+spec:
+  progressDeadlineSeconds: 600
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      run: backend
+  strategy:
+    rollingUpdate:
+      maxSurge: {{.Values.maxSurge}}
+      maxUnavailable: {{.Values.maxUnavailable}}
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        run: backend
+        version: "1"
+      name: backend
+    spec:
+      containers:
+      - name: backend
+        image: {{.Values.containerRepo}}:{{.Values.buildVersion}}
+        resources:
+          requests:
+            cpu: {{.Values.cpuRequests | quote}}
+            memory:  {{.Values.memoryRequests | quote}}
+          limits:
+            cpu: {{.Values.cpuLimit | quote}}
+            memory: {{.Values.memorylimit | quote}}
+        livenessProbe:
+          httpGet:
+            path: {{.Values.healthPath}}
+            port: {{.Values.containerPort}}
+          initialDelaySeconds: 5
+          timeoutSeconds: 1
+          periodSeconds: 10
+          failureThreshold: 3
+        ports:
+          - containerPort: {{.Values.containerPort}}
+            name: http
+            protocol: TCP
+        env:
+          - name: DATABASE_HOST
+            valueFrom:
+              secretKeyRef:
+                name: db-secrets
+                key: host
+          - name: DATABASE_NAME
+            valueFrom:
+              secretKeyRef:
+                name: db-secrets
+                key: dbname
+          - name: DATABASE_USER
+            valueFrom:
+              secretKeyRef:
+                name: db-secrets
+                key: username
+          - name: DATABASE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: db-secrets
+                key: password
+          - name: DATABASE_PORT
+            valueFrom:
+              secretKeyRef:
+                name: db-secrets
+                key: port
+          - name: SECRET_KEY
+            value : test
+status: {}

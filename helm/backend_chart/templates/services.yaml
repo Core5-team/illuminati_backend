@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    run: backend
+  name: backend-service
+  namespace: illuminati
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: {{.Values.containerPort}}
+  selector:
+    run: backend
+  type: ClusterIP

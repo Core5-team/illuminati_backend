@@ -100,7 +100,8 @@ class InviteView(APIView):
 
             try:
                 response = requests.post(
-                    "http://docker_go:8080/send_letter",
+                    #TODO
+                    "/send_letter",
                     json=payload,
                     timeout=3,
                 )
