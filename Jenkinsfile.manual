@@ -1,0 +1,53 @@
+pipeline {
+    agent any
+    parameters {
+        choice(
+            name: 'ENV',
+            choices: ['stage', 'prod'],
+            description: 'Select environment to deploy'
+        )
+        string(
+            name: 'IMAGE_TAG',
+            defaultValue: '',
+            description: 'Docker image tag to deploy (from Dev build)'
+        )
+    }
+    stages {
+
+        stage('Select Deployment') {
+            steps {
+                script {
+                    input message: "Deploy to ${params.ENV.toUpperCase()}?"
+                }
+            }
+        }
+
+        stage('Update ArgoCD values') {
+            steps {
+                sshagent(['github_ssh_key']) {
+                    script {
+                        def tag = params.IMAGE_TAG ?: env.BUILD_NUMBER
+                        def GIT_REPO = "git@github.com:Core5-team/illuminati_gitops.git"
+                        def FILE_PATH = "envs/prod/backend-values.yaml"
+                        def BRANCH = "main"
+
+                        sh """
+                            rm -rf gitops-repo
+                             git clone ${GIT_REPO} gitops-repo
+                            cd gitops-repo
+                            git checkout ${BRANCH}
+
+                            sed -i "s/^buildVersion: \\".*\\"/buildVersion: \\"${tag}\\"/" ${FILE_PATH}
+
+                            git config user.email "jenkins@ci"
+                            git config user.name "Jenkins Bot"
+                            git add ${FILE_PATH}
+                            git commit -m "Update ${params.ENV} buildVersion to ${tag}" || true
+                            git push origin ${BRANCH}
+                        """
+                    }
+                }
+            }
+        }
+    }
+}
