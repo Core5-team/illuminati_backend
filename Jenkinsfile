@@ -37,7 +37,7 @@ pipeline {
                 sshagent(['github_ssh_key']) {
                     script {
                         def GIT_REPO = "git@github.com:Core5-team/illuminati_gitops.git"
-                        def FILE_PATH = "envs/prod/backend-values.yaml"
+                        def FILE_PATH = "envs/dev/backend-values.yaml"
                         def BRANCH = "main"
 
                         sh """
