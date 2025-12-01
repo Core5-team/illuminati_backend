@@ -16,7 +16,7 @@ pipeline {
                 script {
                     sh """
                         aws ecr get-login-password --region us-east-1 | \
-                        docker login --username AWS --password-stdin ${FRONTEND_ECR_LINK}
+                        docker login --username AWS --password-stdin ${BACKEND_ECR_LINK}
                     """
                 }
             }
@@ -25,7 +25,7 @@ pipeline {
         stage('Deploy') {
             steps {
                 script {
-                    docker.withRegistry("https://${FRONTEND_ECR_LINK}") {
+                    docker.withRegistry("https://${BACKEND_ECR_LINK}") {
                         app.push("${env.BUILD_NUMBER}")
                     }
                 }
