@@ -28,7 +28,7 @@ pipeline {
                     script {
                         def tag = params.IMAGE_TAG ?: env.BUILD_NUMBER
                         def GIT_REPO = "git@github.com:Core5-team/illuminati_gitops.git"
-                        def FILE_PATH = "envs/prod/backend-values.yaml"
+                        def FILE_PATH = "envs/${params.ENV}/backend-values.yaml"
                         def BRANCH = "main"
 
                         sh """
