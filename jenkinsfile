@@ -38,7 +38,7 @@ pipeline {
                     script {
                         def GIT_REPO = "git@github.com:Core5-team/illuminati_gitops.git"
                         def FILE_PATH = "envs/prod/backend-values.yaml"
-                        def BRANCH = "CORE5-15-Install-and-Configure-ArgoCD-in-Existing-EKS-Cluster"
+                        def BRANCH = "main"
 
                         sh """
                             rm -rf gitops-repo
