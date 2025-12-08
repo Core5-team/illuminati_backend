@@ -8,4 +8,5 @@ urlpatterns = [
     path("password/", include("apps.entry_password.urls")),
     path("votes/", include("apps.votes.urls")),
     path("hall_of_fame/", include("apps.hall_of_fame.urls")),
+    path("", include("apps.health.urls")),
 ]
