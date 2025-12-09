@@ -8,7 +8,8 @@ class EntryView(APIView):
 
     def post(self, request):
 
-        save_new_entry_password()
+        password = request.data.get("entry_password")
+        save_new_entry_password(password)
 
         return Response(
             {"status": "OK", "notification": "Entry verified"},
