@@ -246,15 +246,18 @@ class RecordEraseView(APIView):
 
         erase_all_records()
 
-        image_dir = os.path.join(settings.BASE_DIR, "shared", "images")
-        if os.path.exists(image_dir):
-            for filename in os.listdir(image_dir):
-                file_path = os.path.join(image_dir, filename)
+        s3 = boto3.client("s3")
+        bucket_name = settings.AWS_S3_BUCKET_NAME
+
+        records = get_all_records()
+        for record in records:
+            img_url = record.img_path
+            if img_url and img_url.startswith(settings.AWS_S3_URL):
+                s3_key = img_url.replace(settings.AWS_S3_URL, "")
                 try:
-                    if os.path.isfile(file_path):
-                        os.remove(file_path)
-                except Exception as e:
-                    print(f"Failed to delete {file_path}: {e}")
+                    s3.delete_object(Bucket=bucket_name, Key=s3_key)
+                except ClientError as e:
+                    print(f"Failed to delete {s3_key} from S3: {e}")
 
         else:
             print(f"Image directory not found: {image_dir}")
