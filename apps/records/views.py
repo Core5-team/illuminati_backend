@@ -16,6 +16,13 @@ from django.conf import settings
 import jwt
 from apps.entry_password.services import save_new_entry_password
 import requests
+import boto3
+from botocore.exceptions import ClientError
+
+
+AWS_S3_BUCKET_NAME = "birdwatching-prod-01-images"
+AWS_S3_REGION = "us-east-1"
+AWS_S3_URL = f"https://{AWS_S3_BUCKET_NAME}.s3.{AWS_S3_REGION}.amazonaws.com/"
 
 
 class RecordListView(APIView):
@@ -48,21 +55,35 @@ class RecordCreateView(APIView):
                 {"status": "ERROR", "notification": "Image is required"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        image_dir = os.path.join(settings.BASE_DIR, "shared", "images")
-        os.makedirs(image_dir, exist_ok=True)
+        
+        s3 = boto3.client("s3")
+        bucket_name = settings.AWS_S3_BUCKET_NAME
 
         ext = os.path.splitext(img.name)[1]
         unique_name = f"{uuid.uuid4().hex}{ext}"
-        image_path = os.path.join(image_dir, unique_name)
+        s3_key = f"records/{unique_name}"
 
-        with open(image_path, "wb+") as dest:
-            for chunk in img.chunks():
-                dest.write(chunk)
+        try:
+            s3.upload_fileobj(
+                img,
+                bucket_name,
+                s3_key,
+                ExtraArgs={"ContentType": img.content_type, "ACL": "public-read"},
+            )
+        except ClientError as e:
+            return Response(
+                {
+                    "status": "ERROR",
+                    "notification": "S3 upload failed",
+                    "details": str(e),
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        img_url = f"{settings.AWS_S3_URL}{s3_key}"
 
         record_data = serializer.validated_data
-        record_data["img_path"] = request.build_absolute_uri(
-            f"{settings.MEDIA_URL}{unique_name}"
-        )
+        record_data["img_path"] = img_url
 
         record_data["description"] = record_data.get("description") or "No description"
         record_data["additional_info"] = record_data.get("additional_info") or "N/A"
