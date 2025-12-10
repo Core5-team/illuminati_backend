@@ -9,6 +9,7 @@ from .services import (
     erase_all_records,
     like_record,
     unlike_record,
+    get_presigned_url,
 )
 import os
 import uuid
@@ -113,7 +114,13 @@ class RecordDetailView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        serializer = RecordSerializer(record)
+        data = RecordSerializer(record).data
+
+        img_url = data.get("img_path")
+        if img_url and img_url.startswith(settings.AWS_S3_URL):
+            s3_key = img_url.replace(settings.AWS_S3_URL, "")
+            data["img_path"] = get_presigned_url(s3_key) or img_url
+
         return Response(
             {"status": "OK", "notification": "Record details", "data": serializer.data},
             status=status.HTTP_200_OK,
