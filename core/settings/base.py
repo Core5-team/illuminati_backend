@@ -12,6 +12,10 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "shared", "images")
 
 
+AWS_S3_BUCKET_NAME = "birdwatching-prod-01-images"
+AWS_S3_REGION = "us-east-1"
+AWS_S3_URL = f"https://{AWS_S3_BUCKET_NAME}.s3.{AWS_S3_REGION}.amazonaws.com/"
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
