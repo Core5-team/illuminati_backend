@@ -28,183 +28,69 @@ class RecordListView(APIView):
             {"status": "OK", "notification": "All records", "data": serializer.data},
             status=status.HTTP_200_OK,
         )
-
+            
 class RecordCreateView(APIView):
     def post(self, request):
-        print("=" * 50)
-        print("RECORD CREATE VIEW STARTED")
-        print("=" * 50)
-        
-        try:
-            print(f"Request data: {request.data}")
-            print(f"Request files: {request.FILES}")
-            
-            serializer = RecordSerializer(data=request.data)
-            if not serializer.is_valid():
-                print(f"Serializer errors: {serializer.errors}")
-                return Response(
-                    {
-                        "status": "ERROR",
-                        "notification": "Invalid data",
-                        "errors": serializer.errors,
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            img = request.FILES.get("img")
-            if not img:
-                print("No image found in request")
-                return Response(
-                    {"status": "ERROR", "notification": "Image is required"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            
-            print(f"Image received: {img.name}, size: {img.size}")
-            
-            # Check settings
-            print(f"AWS_S3_BUCKET_NAME: {settings.AWS_S3_BUCKET_NAME}")
-            print(f"AWS_S3_URL: {settings.AWS_S3_URL}")
-            
-            s3 = boto3.client("s3")
-            bucket_name = settings.AWS_S3_BUCKET_NAME
-
-            ext = os.path.splitext(img.name)[1]
-            unique_name = f"{uuid.uuid4().hex}{ext}"
-            s3_key = f"records/{unique_name}"
-            
-            print(f"Uploading to S3: bucket={bucket_name}, key={s3_key}")
-
-            try:
-                s3.upload_fileobj(
-                    img,
-                    bucket_name,
-                    s3_key,
-                    ExtraArgs={"ContentType": img.content_type, "ACL": "public-read"},
-                )
-                print("S3 upload successful!")
-            except ClientError as e:
-                print(f"S3 ClientError: {e}")
-                print(f"Error code: {e.response['Error']['Code']}")
-                print(f"Error message: {e.response['Error']['Message']}")
-                return Response(
-                    {
-                        "status": "ERROR",
-                        "notification": "S3 upload failed",
-                        "details": str(e),
-                    },
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                )
-            except Exception as e:
-                print(f"Unexpected S3 error: {type(e).__name__}: {str(e)}")
-                import traceback
-                traceback.print_exc()
-                return Response(
-                    {
-                        "status": "ERROR",
-                        "notification": "S3 upload failed",
-                        "details": str(e),
-                    },
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                )
-
-            img_url = f"{settings.AWS_S3_URL}{s3_key}"
-            print(f"Image URL: {img_url}")
-
-            record_data = serializer.validated_data
-            record_data["img_path"] = img_url
-            record_data["description"] = record_data.get("description") or "No description"
-            record_data["additional_info"] = record_data.get("additional_info") or "N/A"
-
-            print(f"Creating record with data: {record_data}")
-            record = create_record(record_data)
-            print(f"Record created: {record}")
-
-            return Response(
-                {
-                    "status": "OK",
-                    "notification": "Record created successfully",
-                    "data": RecordSerializer(record).data,
-                },
-                status=status.HTTP_201_CREATED,
-            )
-            
-        except Exception as e:
-            print("!" * 50)
-            print(f"UNCAUGHT EXCEPTION: {type(e).__name__}: {str(e)}")
-            print("!" * 50)
-            import traceback
-            traceback.print_exc()
+        serializer = RecordSerializer(data=request.data)
+        if not serializer.is_valid():
             return Response(
                 {
                     "status": "ERROR",
-                    "notification": "Internal server error",
-                    "details": f"{type(e).__name__}: {str(e)}",
+                    "notification": "Invalid data",
+                    "errors": serializer.errors,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        img = request.FILES.get("img")
+        if not img:
+            return Response(
+                {"status": "ERROR", "notification": "Image is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        
+        s3 = boto3.client("s3")
+        bucket_name = settings.AWS_S3_BUCKET_NAME
+
+        ext = os.path.splitext(img.name)[1]
+        unique_name = f"{uuid.uuid4().hex}{ext}"
+        s3_key = f"records/{unique_name}"
+
+        try:
+            s3.upload_fileobj(
+                img,
+                bucket_name,
+                s3_key,
+                ExtraArgs={"ContentType": img.content_type},
+            )
+        except ClientError as e:
+            return Response(
+                {
+                    "status": "ERROR",
+                    "notification": "S3 upload failed",
+                    "details": str(e),
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-            
-# class RecordCreateView(APIView):
-#     def post(self, request):
-#         serializer = RecordSerializer(data=request.data)
-#         if not serializer.is_valid():
-#             return Response(
-#                 {
-#                     "status": "ERROR",
-#                     "notification": "Invalid data",
-#                     "errors": serializer.errors,
-#                 },
-#                 status=status.HTTP_400_BAD_REQUEST,
-#             )
 
-#         img = request.FILES.get("img")
-#         if not img:
-#             return Response(
-#                 {"status": "ERROR", "notification": "Image is required"},
-#                 status=status.HTTP_400_BAD_REQUEST,
-#             )
-        
-#         s3 = boto3.client("s3")
-#         bucket_name = settings.AWS_S3_BUCKET_NAME
+        img_url = f"{settings.AWS_S3_URL}{s3_key}"
 
-#         ext = os.path.splitext(img.name)[1]
-#         unique_name = f"{uuid.uuid4().hex}{ext}"
-#         s3_key = f"records/{unique_name}"
+        record_data = serializer.validated_data
+        record_data["img_path"] = img_url
 
-#         try:
-#             s3.upload_fileobj(
-#                 img,
-#                 bucket_name,
-#                 s3_key,
-#                 ExtraArgs={"ContentType": img.content_type, "ACL": "public-read"},
-#             )
-#         except ClientError as e:
-#             return Response(
-#                 {
-#                     "status": "ERROR",
-#                     "notification": "S3 upload failed",
-#                     "details": str(e),
-#                 },
-#                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#             )
+        record_data["description"] = record_data.get("description") or "No description"
+        record_data["additional_info"] = record_data.get("additional_info") or "N/A"
 
-#         img_url = f"{settings.AWS_S3_URL}{s3_key}"
+        record = create_record(record_data)
 
-#         record_data = serializer.validated_data
-#         record_data["img_path"] = img_url
-
-#         record_data["description"] = record_data.get("description") or "No description"
-#         record_data["additional_info"] = record_data.get("additional_info") or "N/A"
-
-#         record = create_record(record_data)
-
-#         return Response(
-#             {
-#                 "status": "OK",
-#                 "notification": "Record created successfully",
-#                 "data": RecordSerializer(record).data,
-#             },
-#             status=status.HTTP_201_CREATED,
-#         )
+        return Response(
+            {
+                "status": "OK",
+                "notification": "Record created successfully",
+                "data": RecordSerializer(record).data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class RecordDetailView(APIView):
