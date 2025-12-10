@@ -121,6 +121,8 @@ class RecordDetailView(APIView):
             s3_key = img_url.replace(settings.AWS_S3_URL, "")
             data["img_path"] = get_presigned_url(s3_key) or img_url
 
+        serializer = RecordSerializer(record)
+
         return Response(
             {"status": "OK", "notification": "Record details", "data": serializer.data},
             status=status.HTTP_200_OK,
