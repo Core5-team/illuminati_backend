@@ -19,12 +19,6 @@ import requests
 import boto3
 from botocore.exceptions import ClientError
 
-
-AWS_S3_BUCKET_NAME = "birdwatching-prod-01-images"
-AWS_S3_REGION = "us-east-1"
-AWS_S3_URL = f"https://{AWS_S3_BUCKET_NAME}.s3.{AWS_S3_REGION}.amazonaws.com/"
-
-
 class RecordListView(APIView):
     def get(self, request):
         records = get_all_records()
