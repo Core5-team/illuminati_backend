@@ -243,13 +243,11 @@ class RecordEraseView(APIView):
                 {"status": "ERROR", "notification": "Unauthorized"},
                 status=status.HTTP_403_FORBIDDEN,
             )
-
-        erase_all_records()
+        records = get_all_records()
 
         s3 = boto3.client("s3")
         bucket_name = settings.AWS_S3_BUCKET_NAME
-
-        records = get_all_records()
+        
         for record in records:
             img_url = record.img_path
             if img_url and img_url.startswith(settings.AWS_S3_URL):
@@ -258,9 +256,8 @@ class RecordEraseView(APIView):
                     s3.delete_object(Bucket=bucket_name, Key=s3_key)
                 except ClientError as e:
                     print(f"Failed to delete {s3_key} from S3: {e}")
-
-        else:
-            print(f"Image directory not found: {image_dir}")
+        
+        erase_all_records()
 
         try:
             save_new_entry_password()
