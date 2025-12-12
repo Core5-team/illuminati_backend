@@ -37,6 +37,8 @@
     "tzdata",
     "unliked",
     "envlist",
-    "skipsdist"
+    "skipsdist",
+    "sshagent",
+    "gitops"
   ]
 }

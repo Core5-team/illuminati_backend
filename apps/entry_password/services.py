@@ -8,17 +8,9 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 
-def get_new_entry_password():
-    response = requests.get("http://docker_go:8080/entry_password", timeout=2)
-    payload = response.json()
-    logging.info("new payload: %s", payload)
-    return payload
-
-
-def save_new_entry_password():
+def save_new_entry_password(password):
     logging.info("Detected new changes for entry password")
-    payload = get_new_entry_password()
-    logging.info("New entry password received: %s", payload)
+    logging.info("New entry password received: %s", password)
     old_password = EntryPassword.objects.filter().first()
     query = """
         UPDATE entry_password
@@ -27,7 +19,7 @@ def save_new_entry_password():
             last_updated = %s
         WHERE id = %s;
     """
-    params = [payload.get("entry_password"),datetime.now().strftime("%Y-%m-%d %H:%M:%S"),old_password.id]
+    params = [password,datetime.now().strftime("%Y-%m-%d %H:%M:%S"),old_password.id]
     
     with connection.cursor() as cursor:
         cursor.execute(query,params)
