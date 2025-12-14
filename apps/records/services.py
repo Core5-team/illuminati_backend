@@ -1,5 +1,21 @@
 from .models import Record, RecordActivityUser
 from django.db.models import Count
+import boto3
+from botocore.exceptions import ClientError
+from django.conf import settings
+
+def get_presigned_url(s3_key, expires_in=3600):
+    s3 = boto3.client("s3")
+    try:
+        url = s3.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": settings.AWS_S3_BUCKET_NAME, "Key": s3_key},
+            ExpiresIn=expires_in
+        )
+    except ClientError as e:
+        print(f"Failed to generate presigned URL: {e}")
+        return None
+    return url
 
 
 def get_all_records():

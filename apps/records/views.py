@@ -9,6 +9,7 @@ from .services import (
     erase_all_records,
     like_record,
     unlike_record,
+    get_presigned_url,
 )
 import os
 import uuid
@@ -16,7 +17,8 @@ from django.conf import settings
 import jwt
 from apps.entry_password.services import save_new_entry_password
 import requests
-
+import boto3
+from botocore.exceptions import ClientError
 
 class RecordListView(APIView):
     def get(self, request):
@@ -27,8 +29,7 @@ class RecordListView(APIView):
             {"status": "OK", "notification": "All records", "data": serializer.data},
             status=status.HTTP_200_OK,
         )
-
-
+            
 class RecordCreateView(APIView):
     def post(self, request):
         serializer = RecordSerializer(data=request.data)
@@ -48,21 +49,35 @@ class RecordCreateView(APIView):
                 {"status": "ERROR", "notification": "Image is required"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        image_dir = os.path.join(settings.BASE_DIR, "shared", "images")
-        os.makedirs(image_dir, exist_ok=True)
+        
+        s3 = boto3.client("s3")
+        bucket_name = settings.AWS_S3_BUCKET_NAME
 
         ext = os.path.splitext(img.name)[1]
         unique_name = f"{uuid.uuid4().hex}{ext}"
-        image_path = os.path.join(image_dir, unique_name)
+        s3_key = f"records/{unique_name}"
 
-        with open(image_path, "wb+") as dest:
-            for chunk in img.chunks():
-                dest.write(chunk)
+        try:
+            s3.upload_fileobj(
+                img,
+                bucket_name,
+                s3_key,
+                ExtraArgs={"ContentType": img.content_type},
+            )
+        except ClientError as e:
+            return Response(
+                {
+                    "status": "ERROR",
+                    "notification": "S3 upload failed",
+                    "details": str(e),
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        img_url = f"{settings.AWS_S3_URL}{s3_key}"
 
         record_data = serializer.validated_data
-        record_data["img_path"] = request.build_absolute_uri(
-            f"{settings.MEDIA_URL}{unique_name}"
-        )
+        record_data["img_path"] = img_url
 
         record_data["description"] = record_data.get("description") or "No description"
         record_data["additional_info"] = record_data.get("additional_info") or "N/A"
@@ -99,9 +114,19 @@ class RecordDetailView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        serializer = RecordSerializer(record)
+        data = RecordSerializer(record).data
+
+        img_url = data.get("img_path")
+        if img_url and img_url.startswith(settings.AWS_S3_URL):
+            s3_key = img_url.replace(settings.AWS_S3_URL, "")
+            data["img_path"] = get_presigned_url(s3_key) or img_url
+        
         return Response(
-            {"status": "OK", "notification": "Record details", "data": serializer.data},
+            {
+                "status": "OK",
+                "notification": "Record details",
+                "data": data,
+            },
             status=status.HTTP_200_OK,
         )
 
@@ -229,21 +254,21 @@ class RecordEraseView(APIView):
                 {"status": "ERROR", "notification": "Unauthorized"},
                 status=status.HTTP_403_FORBIDDEN,
             )
+        records = get_all_records()
 
-        erase_all_records()
-
-        image_dir = os.path.join(settings.BASE_DIR, "shared", "images")
-        if os.path.exists(image_dir):
-            for filename in os.listdir(image_dir):
-                file_path = os.path.join(image_dir, filename)
+        s3 = boto3.client("s3")
+        bucket_name = settings.AWS_S3_BUCKET_NAME
+        
+        for record in records:
+            img_url = record.img_path
+            if img_url and img_url.startswith(settings.AWS_S3_URL):
+                s3_key = img_url.replace(settings.AWS_S3_URL, "")
                 try:
-                    if os.path.isfile(file_path):
-                        os.remove(file_path)
-                except Exception as e:
-                    print(f"Failed to delete {file_path}: {e}")
-
-        else:
-            print(f"Image directory not found: {image_dir}")
+                    s3.delete_object(Bucket=bucket_name, Key=s3_key)
+                except ClientError as e:
+                    print(f"Failed to delete {s3_key} from S3: {e}")
+        
+        erase_all_records()
 
         try:
             save_new_entry_password()

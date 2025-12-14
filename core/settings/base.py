@@ -11,6 +11,10 @@ ALLOWED_HOSTS = ["*"]
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "shared", "images")
 
+AWS_S3_BUCKET_NAME = os.environ.get("AWS_S3_BUCKET_NAME")
+AWS_S3_REGION = os.environ.get("AWS_S3_REGION")
+
+AWS_S3_URL = f"https://{AWS_S3_BUCKET_NAME}.s3.{AWS_S3_REGION}.amazonaws.com/"
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -102,3 +106,23 @@ REST_FRAMEWORK = {
 }
 
 SECRET_ENTRY_PASSWORD = Config.SECRET_ENTRY_PASSWORD
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+        },
+        "django.request": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+    },
+}
