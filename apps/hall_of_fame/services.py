@@ -20,7 +20,7 @@ def send_message_to_architect(architect_id, message):
 
         try:
             response = requests.post(
-                "http://docker_go:8080/send_letter",
+                "http://docker-go:8080/send_letter",
                 json=payload,
                 timeout=3,
             )

@@ -18,7 +18,7 @@ import os
 
 logger = logging.getLogger(__name__)
 
-GO_SERVICE_URL = os.getenv("GO_SERVICE_URL", "http://docker_go:8080")
+GO_SERVICE_URL = os.getenv("GO_SERVICE_URL", "http://docker-go:8080")
 BROADCAST_ENDPOINT = os.getenv("BROADCAST_ENDPOINT", "/send_letter")
 
 class UsersListView(APIView):
@@ -100,7 +100,7 @@ class InviteView(APIView):
 
             try:
                 response = requests.post(
-                    "http://docker_go:8080/send_letter",
+                    "http://docker-go:8080/send_letter",
                     json=payload,
                     timeout=3,
                 )
